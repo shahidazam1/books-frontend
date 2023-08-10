@@ -1,95 +1,97 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+"use client";
+import { getBooks } from "@/api/services/books";
+import Loader from "@/components/Loader";
+import { Box, Grid, Typography } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "react-query";
+
+interface BookTypes {
+  title: string;
+  description: string;
+  discountRate: string;
+  price: number;
+  coverImageUrl: string;
+}
 
 export default function Home() {
+  const [limit, setLimit] = useState<number>(20);
+  const [offset, setOffset] = useState<number>(0);
+
+  const { data, isLoading } = useQuery(
+    [
+      "books",
+      {
+        limit: limit,
+        offset: limit * offset,
+      },
+    ],
+    getBooks
+  );
+
+  const loadMoreTrigger = useRef<HTMLDivElement | null>(null);
+
+  const handleScroll = () => {
+    if (
+      loadMoreTrigger.current &&
+      window.innerHeight + window.scrollY >=
+        loadMoreTrigger.current.offsetTop * 0.8
+    ) {
+      setLimit(20);
+      setOffset(offset + 1);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [handleScroll]);
+
+  if (isLoading) return <Loader />;
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
+    <Box>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          p: 2,
+        }}
+      >
+        <Typography variant="h4">Books</Typography>
+      </Box>
+      <Grid container spacing={2}>
+        {data?.data?.books?.map((book: BookTypes, index: number) => (
+          <Grid key={index} item xs={12} sm={6} md={4} lg={3}>
+            <img
+              src={book?.coverImageUrl}
+              alt={book?.title}
+              width="100%"
+              height="300px"
+              style={{ objectFit: "cover" }}
             />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+            <Box p={2}>
+              <Typography variant="h6">{book?.title}</Typography>
+              <Box
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Typography variant="body1" sx={{ color: "red" }}>
+                  {book?.discountRate}%
+                </Typography>
+                <Typography variant="body1">
+                  {book?.price?.toLocaleString()} INR
+                </Typography>
+              </Box>
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
 }
